@@ -1,0 +1,89 @@
+import React, { useState } from "react";
+
+// Simple single-file React component (default export) that implements // a Pokémon-style damage calculator (generic formula). Tailwind CSS classes // are used for styling (no imports required if your project already uses Tailwind).
+
+export default function ZaDamageCalculator() { const [level, setLevel] = useState(50); const [power, setPower] = useState(100); const [atk, setAtk] = useState(120); const [defn, setDefn] = useState(100); const [stab, setStab] = useState(false); const [crit, setCrit] = useState(false); const [effectiveness, setEffectiveness] = useState(1); const [otherMult, setOtherMult] = useState(1);
+
+// Standard Pokemon damage base (approximate): // damage = floor(((((2*L)/5 + 2) * Power * A / D) / 50) + 2) * modifier // where modifier = random(0.85..1.00) * STAB * type * other function calcBase() { const term1 = Math.floor((2 * level) / 5 + 2); const raw = Math.floor((term1 * power * atk) / defn / 50) + 2; return raw; }
+
+function calcRange() { const base = calcBase(); const stabMul = stab ? 1.5 : 1.0; const critMul = crit ? 1.5 : 1.0; // approximate const minRand = 0.85; const maxRand = 1.0;
+
+const min = Math.floor(base * minRand * stabMul * effectiveness * otherMult * critMul);
+const max = Math.floor(base * maxRand * stabMul * effectiveness * otherMult * critMul);
+const avg = Math.round((min + max) / 2);
+return { min, max, avg, base };
+
+}
+
+const result = calcRange();
+
+return ( <div className="max-w-3xl mx-auto p-6 bg-white rounded-2xl shadow-lg"> <h1 className="text-2xl font-bold mb-4">ZA ダメージ計算（簡易）</h1> <p className="text-sm text-gray-600 mb-4">レベル・技の威力・攻撃・防御を入れるとダメージ範囲を表示します。ZA固有の挙動がある場合は「その他倍率」で補正してください。</p>
+
+<div className="grid grid-cols-2 gap-4">
+    <label className="flex flex-col">
+      <span className="text-sm">レベル</span>
+      <input type="number" className="border p-2 rounded" value={level} onChange={e => setLevel(Math.max(1, Number(e.target.value) || 1))} />
+    </label>
+
+    <label className="flex flex-col">
+      <span className="text-sm">技の威力 (Power)</span>
+      <input type="number" className="border p-2 rounded" value={power} onChange={e => setPower(Math.max(1, Number(e.target.value) || 1))} />
+    </label>
+
+    <label className="flex flex-col">
+      <span className="text-sm">攻撃 (Attack)</span>
+      <input type="number" className="border p-2 rounded" value={atk} onChange={e => setAtk(Math.max(1, Number(e.target.value) || 1))} />
+    </label>
+
+    <label className="flex flex-col">
+      <span className="text-sm">防御 (Defense)</span>
+      <input type="number" className="border p-2 rounded" value={defn} onChange={e => setDefn(Math.max(1, Number(e.target.value) || 1))} />
+    </label>
+
+    <label className="flex items-center space-x-2">
+      <input type="checkbox" checked={stab} onChange={e => setStab(e.target.checked)} />
+      <span className="text-sm">STAB (同タイプ技 1.5x)</span>
+    </label>
+
+    <label className="flex items-center space-x-2">
+      <input type="checkbox" checked={crit} onChange={e => setCrit(e.target.checked)} />
+      <span className="text-sm">急所（簡易）</span>
+    </label>
+
+    <label className="flex flex-col col-span-2">
+      <span className="text-sm">タイプ相性倍率（例: 0.5, 2, 1）</span>
+      <input type="number" step="0.25" className="border p-2 rounded" value={effectiveness} onChange={e => setEffectiveness(Math.max(0, Number(e.target.value) || 1))} />
+    </label>
+
+    <label className="flex flex-col col-span-2">
+      <span className="text-sm">その他の倍率（アイテム・天候など。1=無効）</span>
+      <input type="number" step="0.01" className="border p-2 rounded" value={otherMult} onChange={e => setOtherMult(Math.max(0, Number(e.target.value) || 1))} />
+    </label>
+  </div>
+
+  <div className="mt-6 bg-gray-50 p-4 rounded">
+    <h2 className="font-semibold">結果</h2>
+    <p className="text-sm text-gray-700">ベースダメージ（乱数等を除いた値）: <strong>{result.base}</strong></p>
+    <p className="mt-2">ダメージ範囲（乱数0.85〜1.00を含む）: <strong>{result.min}</strong> 〜 <strong>{result.max}</strong></p>
+    <p className="text-sm text-gray-600 mt-2">平均推定: <strong>{result.avg}</strong></p>
+
+    <div className="mt-4 flex gap-2">
+      <button onClick={() => navigator.clipboard && navigator.clipboard.writeText(`Level=${level} Power=${power} Atk=${atk} Def=${defn} Range=${result.min}-${result.max}`)} className="px-3 py-2 bg-blue-600 text-white rounded hover:opacity-90">結果をコピー</button>
+      <button onClick={() => {
+        // quick share: open with query params (simple)
+        const params = new URLSearchParams({ level, power, atk, defn, stab: stab ? '1' : '0', crit: crit ? '1' : '0', eff: effectiveness, other: otherMult });
+        const url = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+        navigator.clipboard && navigator.clipboard.writeText(url);
+        alert('共有URLをコピーしました。');
+      }} className="px-3 py-2 border rounded">共有URLをコピー</button>
+    </div>
+
+    <p className="text-xs text-gray-500 mt-3">注: これは汎用のポケモン風計算式です。ZA固有の挙動（クールダウンや追加効果）は反映していないため、必要なら『回転率（時間当たりダメージ）』やカスタム補正を追加できます。</p>
+  </div>
+
+  <div className="mt-4 text-sm text-gray-600">
+    <p>使い方: 数値を入力して結果を確認してください。将来的に・複数攻撃の合算・時間当たりダメージ・実戦向けの回転率も追加できます。</p>
+  </div>
+</div>
+
+); }
